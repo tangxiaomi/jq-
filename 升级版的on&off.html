@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="core.js"></script>
+    <script src="attr&style.js"></script>
+    <script src="dom.js"></script>
+</head>
+<body>
+<div>点击</div>
+<script>
+    $.extend({
+        //封装添加事件
+        addEvent:function(ele,type,fn){
+            //先判断满不满足现代浏览器
+            if(ele.addEventListener){
+                ele.addEventListener(type,fn);
+            }else{
+                 ele.addEvent('on'+type,fn);
+            }
+        }
+    });
+
+    $.fn.extend({
+        on:function(type,fn){
+            //判断如果有那个对象，就直接用，如果没有就创建一个对象
+            //判断有没有相应的数组，没有也自己创建
+            //为相应的对象注册事件，但是事件有很多个，所以要循环注册事件
+
+           return this.each(function(){//所有的type要用[];
+                this.event_cache=this.event_cache||{};
+                var that=this;
+                if(!that.event_cache[type]){
+                    that.event_cache[type]=[];
+                    $.addEvent(that,type,function(e){//这是一个中间的函数
+                        for(var i=0;i<that.event_cache[type].length;i++){
+                            //只是this指向改变了，不影响代码的正常执行
+                            that.event_cache[type][i].call(that,e);//谁调用就应该是谁,这是一个数组，现在想把他换成调用的对象
+                        }
+                    })
+                }
+                this.event_cache[type].push(fn);
+            })
+
+
+        },
+        off:function(type,fn){
+            //首先判断每个元素有没有相应的对象
+            //只关注有相关的
+            //判断参数的个数。没有参数的直接将每个数组的内容全部清空
+            //有一个参数的，讲指定的事件数组清空
+            //有两个参数的，找到指定事件的指定函数进行清空
+            //注意这里的参数，使用的是外部的参数
+            var arg=arguments;
+            var len=arg.length;
+            this.each(function(){
+                var self=this;
+                if(this.event_cache){
+                    console.log(this.event_cache);
+                    if(len===0){
+                        $.each(this.event_cache,function(i,val){
+                            self.event_cache[i]=[];//清除对象的属性，只能这样清除
+                        })
+                    }else if(len===1){
+                        this.event_cache[type]=[];//指定的直接清空
+                    }else if(len>1){
+                        for(var i=this.event_cache[type].length-1;i>=0;i--){//到这来，是为了那个有重复的数值的时候都可以被删除掉
+                            if(this.event_cache[type][i]===fn){
+                                this.event_cache[type].splice(i,1);//不是中括号
+                            }
+                        }
+                    }
+                }
+            });
+
+        }
+    })
+
+/*
+    arr=['click','mouseout','mousedown','mouseup','mouseover'];
+    $.each(arr,function(i,val){
+        $.fn[val]=function(fn){
+            this.on(val,fn)
+        }
+    })
+*/
+
+
+     function fn(){
+        console.log('最后一次触发');
+    }
+
+    $('div').on('mouseover',function(){
+        console.log('mouseover触发');
+    })
+    $('div').on('mouseover',fn)
+    $('div').off('mouseover',fn);
+
+</script>
+</body>
+</html>
